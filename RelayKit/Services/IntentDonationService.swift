@@ -33,7 +33,25 @@ final class IntentDonationService {
     /// Tracks the last donation timestamp per room ID for incoming messages.
     private var lastIncomingDonation: [String: Date] = [:]
 
-    init() {}
+    /// Donations still being handed to macOS. ``removeAllDonations()`` waits
+    /// for them: one finishing after the deletion would bring its room back.
+    private var inFlight: [UUID: Task<Void, Never>] = [:]
+
+    private let donate: (INInteraction) async throws -> Void
+    private let deleteAll: () async throws -> Void
+
+    /// - Parameters:
+    ///   - donate: Hands an interaction to macOS.
+    ///   - deleteAll: Deletes every interaction this app has donated.
+    ///
+    ///   Both are parameters so tests never touch the system's suggestions.
+    init(
+        donate: @escaping (INInteraction) async throws -> Void = { try await $0.donate() },
+        deleteAll: @escaping () async throws -> Void = { try await INInteraction.deleteAll() }
+    ) {
+        self.donate = donate
+        self.deleteAll = deleteAll
+    }
 
     // MARK: - Outgoing
 
@@ -49,13 +67,7 @@ final class IntentDonationService {
         let interaction = INInteraction(intent: intent, response: nil)
         interaction.direction = .outgoing
 
-        Task {
-            do {
-                try await interaction.donate()
-            } catch {
-                logger.error("Failed to donate outgoing intent for \(roomSummary.id): \(error)")
-            }
-        }
+        hand(interaction, roomID: roomSummary.id)
     }
 
     // MARK: - Incoming
@@ -91,16 +103,46 @@ final class IntentDonationService {
         let interaction = INInteraction(intent: intent, response: nil)
         interaction.direction = .incoming
 
-        Task {
-            do {
-                try await interaction.donate()
-            } catch {
-                logger.error("Failed to donate incoming intent for \(roomSummary.id): \(error)")
-            }
+        hand(interaction, roomID: roomSummary.id)
+    }
+
+    // MARK: - Sign-Out
+
+    /// Withdraws every conversation Plic has suggested to macOS.
+    ///
+    /// Donations outlive the session: macOS keeps offering their rooms in the
+    /// share sheet, by name, until the app deletes them. Debug and release
+    /// builds share a bundle identifier, and therefore their donations.
+    func removeAllDonations() async {
+        lastIncomingDonation = [:]
+        let pending = inFlight.values
+        inFlight = [:]
+        for task in pending {
+            await task.value
+        }
+        do {
+            try await deleteAll()
+        } catch {
+            logger.error("Failed to delete donated intents: \(error)")
         }
     }
 
     // MARK: - Helpers
+
+    /// Hands an interaction to macOS, tracking it until it lands.
+    private func hand(_ interaction: INInteraction, roomID: String) {
+        let id = UUID()
+        let direction = interaction.direction == .outgoing ? "outgoing" : "incoming"
+        inFlight[id] = Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await self.donate(interaction)
+            } catch {
+                logger.error("Failed to donate \(direction) intent for \(roomID): \(error)")
+            }
+            self.inFlight[id] = nil
+        }
+    }
 
     private func makeSendMessageIntent(
         roomSummary: RelayInterface.RoomSummary,

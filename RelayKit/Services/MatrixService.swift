@@ -136,6 +136,9 @@ public final class MatrixService: MatrixServiceProtocol {
                 category: .auth, severity: .info, source: "MatrixService",
                 summary: "No saved session found"
             )
+            // Signed out, so nothing about any account's rooms should remain
+            // for the share sheet, whichever way the last session ended.
+            await forgetShareTargets()
 
         case .restored(let restoredClient, let userId):
             client = restoredClient
@@ -268,6 +271,7 @@ public final class MatrixService: MatrixServiceProtocol {
         try? await client?.logout()
         auth.clearSession()
         await teardown()
+        await forgetShareTargets()
     }
 
     /// Discards unreadable local data and returns to the login screen.
@@ -282,6 +286,18 @@ public final class MatrixService: MatrixServiceProtocol {
         await teardown()
         AuthenticationService.resetAllLocalData()
         auth.clearSession()
+        await forgetShareTargets()
+    }
+
+    /// Removes what the share sheet and the share extension know about this
+    /// account's rooms: the suggestions donated to macOS, and the room list
+    /// and pending shares in the app group. Both live outside the encrypted
+    /// stores and would otherwise outlast the session.
+    private func forgetShareTargets() async {
+        roomCacheWriteTask?.cancel()
+        roomCacheWriteTask = nil
+        PendingShareStore.removeAll()
+        await intentDonation.removeAllDonations()
     }
 
     // MARK: - Clear Local Data

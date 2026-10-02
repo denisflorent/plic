@@ -27,7 +27,7 @@ public enum PendingShareStore: Sendable {
 
     /// The name of the directory inside the app group container that holds
     /// pending share files.
-    private static let pendingSharesDirectory = {
+    static let pendingSharesDirectory = {
         #if DEBUG
         "pending-shares-debug"
         #else
@@ -36,7 +36,7 @@ public enum PendingShareStore: Sendable {
     }()
 
     /// The filename for the JSON manifest of pending share records.
-    private static let manifestFilename = {
+    static let manifestFilename = {
         #if DEBUG
         "pending-shares-debug.json"
         #else
@@ -46,7 +46,7 @@ public enum PendingShareStore: Sendable {
 
     /// The name of the file inside the app group container that holds the
     /// room list cache for the share extension.
-    private static let roomCacheFilename = {
+    static let roomCacheFilename = {
         #if DEBUG
         "shareable-rooms-debug.json"
         #else
@@ -157,6 +157,24 @@ public enum PendingShareStore: Sendable {
         } catch {
             logger.error("Failed to decode room cache: \(error)")
             return []
+        }
+    }
+
+    // MARK: - Sign-Out
+
+    /// Deletes what the app group holds about the signed-in account: the room
+    /// list the share extension offers, and any shares not yet sent.
+    ///
+    /// The room list sits outside the encrypted stores, with each room's name,
+    /// avatar and last activity. Left behind, the share extension would keep
+    /// offering the previous account's rooms after sign-out.
+    ///
+    /// - Parameter container: The app group container; a parameter so tests
+    ///   can use a directory of their own.
+    public static func removeAll(in container: URL? = AppGroup.containerURL) {
+        guard let container else { return }
+        for name in [roomCacheFilename, manifestFilename, pendingSharesDirectory] {
+            try? FileManager.default.removeItem(at: container.appending(path: name))
         }
     }
 }
