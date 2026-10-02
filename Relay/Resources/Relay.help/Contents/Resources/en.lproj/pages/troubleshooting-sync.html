@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="Fix sync problems in Plic, including missing rooms, stale messages, and connectivity issues.">
+    <meta name="keywords" content="sync, offline, rooms, messages, timeline, connectivity, cache, troubleshooting">
+    <meta name="robots" content="anchors">
+    <title>Troubleshoot sync issues</title>
+    <link rel="stylesheet" href="../../Shared/relay-help.css">
+    <script defer src="../../Shared/toc.js"></script>
+</head>
+<body>
+    <a name="troubleshoot-sync"></a>
+    <p class="breadcrumb"><a href="../Plic.html">Plic Help</a> &rsaquo; Troubleshooting</p>
+
+    <h1>Troubleshoot sync issues</h1>
+
+    <h2>Offline and unreachable banners</h2>
+    <p>Plic shows a banner in the sidebar when connectivity is lost:</p>
+    <ul>
+        <li><strong>"Network Offline"</strong>: your Mac has no network connection (check Wi-Fi or Ethernet)</li>
+        <li><strong>"Server Unreachable"</strong>: your network is working but Plic can't reach the homeserver (the server may be down or experiencing issues)</li>
+    </ul>
+
+    <h2>Missing or stale rooms</h2>
+    <p>If rooms are missing from your sidebar or show outdated messages:</p>
+    <ul>
+        <li>Wait a moment; Plic syncs in the background and rooms may appear after initial sync completes</li>
+        <li>Switch to a new room or space; this triggers a room list refresh</li>
+        <li>As a last resort, choose <strong>Plic</strong> &gt; <strong>Clear Cache</strong> to force a full re-sync</li>
+    </ul>
+
+    <h2>Messages not appearing</h2>
+    <p>If new messages aren't showing up:</p>
+    <ul>
+        <li>Check the offline banner; you may be disconnected</li>
+        <li>Scroll to the bottom of the timeline; the "scroll to bottom" button appears when you're viewing history</li>
+        <li>Check <strong>Settings</strong> &gt; <strong>Behavior</strong> to make sure "Always load newest messages" is enabled if you want to start at the latest messages</li>
+    </ul>
+
+    <h2>Timeline stuck loading</h2>
+    <p>If the timeline shows a loading spinner that doesn't resolve:</p>
+    <ul>
+        <li>Switch to another room and back</li>
+        <li>If the problem persists, clear the cache</li>
+    </ul>
+
+    <h2>Clear cache</h2>
+    <p>Choose <strong>Plic</strong> &gt; <strong>Clear Cache</strong> from the menu bar. This removes all locally cached data and forces Plic to re-sync from the homeserver. You remain signed in.</p>
+
+    <div class="callout note">
+        <p><strong class="callout-label">Note: </strong>After clearing the cache, the initial sync may take a while depending on how many rooms you've joined. During this time, rooms will gradually appear in the sidebar.</p>
+    </div>
+
+    <div class="see-also">
+        <h2>See also</h2>
+        <ul>
+            <li><a href="troubleshooting-login.html">Troubleshoot sign-in issues</a></li>
+            <li><a href="activity-log.html">Use the Activity Log</a></li>
+            <li><a href="reporting-issues.html">Report an issue</a></li>
+        </ul>
+    </div>
+</body>
+</html>

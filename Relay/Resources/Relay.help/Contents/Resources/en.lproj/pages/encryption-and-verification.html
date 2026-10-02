@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="Learn about end-to-end encryption and how to verify your session in Plic.">
+    <meta name="keywords" content="encryption, E2EE, verification, recovery key, session, security, emoji verification">
+    <meta name="robots" content="anchors">
+    <title>Encryption and session verification</title>
+    <link rel="stylesheet" href="../../Shared/relay-help.css">
+    <script defer src="../../Shared/toc.js"></script>
+</head>
+<body>
+    <a name="encryption-verification"></a>
+
+    <div class="breadcrumb">Privacy &amp; Security</div>
+
+    <h1>Encryption and session verification</h1>
+
+    <h2>About end-to-end encryption</h2>
+    <p>Plic uses Matrix's end-to-end encryption (E2EE) to secure messages in encrypted rooms. Only participants in the room can read the messages. Encryption is enabled per-room when the room is created.</p>
+
+    <h2>Session verification</h2>
+    <p>When you sign in on a new device, you need to verify your session to access encrypted message history. A verification banner appears at the bottom of the sidebar until your session is verified.</p>
+
+    <h3>Verify with another device</h3>
+    <p>If you have another device already signed in:</p>
+    <ol>
+        <li>Click the verification banner, or go to <strong>Settings</strong> &gt; <strong>Sessions</strong> and click <strong>Verify Session</strong>.</li>
+        <li>Accept the verification request on your other device.</li>
+        <li>Compare the 7 emoji shown on both devices.</li>
+        <li>If they match, confirm on both devices.</li>
+    </ol>
+
+    <h3>Verify with a recovery key</h3>
+    <p>If you don't have another device available:</p>
+    <ol>
+        <li>Click <strong>Use Recovery Key</strong> in the verification sheet.</li>
+        <li>Enter your security/recovery key.</li>
+        <li>Your session is verified and encrypted history becomes accessible.</li>
+    </ol>
+
+    <h2>Encryption status</h2>
+    <p>The <strong>Security</strong> tab in the room inspector shows whether encryption is enabled for a room. Once enabled, encryption cannot be turned off.</p>
+
+    <h2>View session info</h2>
+    <p>Go to <strong>Settings</strong> &gt; <strong>Sessions</strong> to see all your signed-in devices, including device name, ID, last seen time, and IP address. <strong>Settings</strong> &gt; <strong>Encryption</strong> shows your session's verification, key backup, and account recovery status.</p>
+
+    <div class="callout warning">
+        <p><strong class="callout-label">Warning: </strong>Keep your recovery key in a safe place. If you lose access to all your devices and your recovery key, you will not be able to read your encrypted message history.</p>
+    </div>
+
+    <div class="see-also">
+        <h2>See also</h2>
+        <ul>
+            <li><a href="privacy-settings.html">Privacy settings</a></li>
+            <li><a href="room-settings.html">Room settings</a></li>
+        </ul>
+    </div>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="Fix common sign-in problems in Plic, including invalid Matrix IDs, SSO issues, and session restore failures.">
+    <meta name="keywords" content="login, sign in, authentication, SSO, OAuth, password, homeserver, session, troubleshooting">
+    <meta name="robots" content="anchors">
+    <title>Troubleshoot sign-in issues</title>
+    <link rel="stylesheet" href="../../Shared/relay-help.css">
+    <script defer src="../../Shared/toc.js"></script>
+</head>
+<body>
+    <a name="troubleshoot-login"></a>
+    <p class="breadcrumb"><a href="../Plic.html">Plic Help</a> &rsaquo; Troubleshooting</p>
+
+    <h1>Troubleshoot sign-in issues</h1>
+
+    <h2>"Invalid Matrix ID" error</h2>
+    <p>Make sure your Matrix ID follows the format <strong>@username:server.org</strong>. The server part must be a valid hostname.</p>
+
+    <h2>Wrong homeserver URL</h2>
+    <p>If your homeserver uses a non-standard URL (different from the server part of your Matrix ID), expand the <strong>Advanced</strong> section on the sign-in screen and enter the correct homeserver URL.</p>
+
+    <h2>OAuth/SSO sign-in doesn't complete</h2>
+    <p>If the browser window opens but sign-in doesn't finish:</p>
+    <ul>
+        <li>Check that your browser isn't blocking popups from Plic</li>
+        <li>Try signing in with a password instead, if your homeserver supports it</li>
+        <li>Check if your homeserver's SSO provider is experiencing issues</li>
+    </ul>
+
+    <h2>"Server unreachable" during sign-in</h2>
+    <p>Verify that your homeserver is online and that your network connection is working. Try opening your homeserver's URL in a web browser.</p>
+
+    <h2>Session restore fails</h2>
+    <p>If Plic doesn't restore your session after a restart:</p>
+    <ul>
+        <li>Your session token may have been invalidated by the homeserver</li>
+        <li>Try signing in again with your credentials</li>
+        <li>If the problem persists, choose <strong>Clear Cache</strong> from the <strong>Plic</strong> menu to reset local data, then sign in again</li>
+    </ul>
+
+    <h2>Clear cache</h2>
+    <p>If you experience persistent sign-in problems, choose <strong>Plic</strong> &gt; <strong>Clear Cache</strong> from the menu bar. This deletes local data and forces a fresh sync. You will not be signed out.</p>
+
+    <div class="callout important">
+        <p><strong class="callout-label">Important: </strong>Clearing the cache does not delete your account or messages. It only removes locally cached data. Plic will re-sync with your homeserver after clearing.</p>
+    </div>
+
+    <div class="see-also">
+        <h2>See also</h2>
+        <ul>
+            <li><a href="getting-started.html">Get started with Plic</a></li>
+            <li><a href="troubleshooting-sync.html">Troubleshoot sync issues</a></li>
+            <li><a href="activity-log.html">Use the Activity Log</a></li>
+            <li><a href="reporting-issues.html">Report an issue</a></li>
+        </ul>
+    </div>
+</body>
+</html>

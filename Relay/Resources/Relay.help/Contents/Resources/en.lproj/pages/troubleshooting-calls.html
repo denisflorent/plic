@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="color-scheme" content="light dark">
+    <meta name="AppleTitle" content="Troubleshooting MatrixRTC calls">
+    <meta name="robots" content="anchors">
+    <meta name="description" content="What to capture and share when an audio or video call in Plic fails to connect or shows no media.">
+    <meta name="keywords" content="calls, MatrixRTC, audio, video, no media, troubleshooting, Activity Log">
+    <link rel="stylesheet" href="../../Shared/relay-help.css">
+    <script defer src="../../Shared/toc.js"></script>
+    <title>Troubleshoot call issues</title>
+</head>
+<body>
+    <a name="troubleshoot-calls"></a>
+    <p class="breadcrumb"><a href="../Plic.html">Plic Help</a> &rsaquo; Troubleshooting</p>
+
+    <h1>Troubleshooting MatrixRTC calls</h1>
+
+    <p>If your calls fail to connect, or connect but show no audio or video, this page walks you through capturing the data Plic's maintainers need to diagnose the issue.</p>
+
+    <h2>Quick capture (3 minutes)</h2>
+
+    <ol>
+        <li>Open <strong>Window &rsaquo; Activity Log</strong> (or press <kbd>&#x2325;&#x2318;A</kbd>).</li>
+        <li>In the search bar, click the <strong>filter chip</strong> and limit to the <strong>Call</strong> category.</li>
+        <li>Leave the Activity Log window open and reproduce the failing call.</li>
+        <li>Once the call has failed (or you have media issues), press <kbd>&#x2318;S</kbd> in the Activity Log window to export the filtered events.</li>
+        <li>Save the file (default name <code>relay-activity-log.json</code>) and attach it to your bug report.</li>
+    </ol>
+
+    <p>That export is everything the developers need to triage a calling problem.</p>
+
+    <h2>What's in the export</h2>
+
+    <p>The file is pretty-printed JSON: an array of events, each with <code>timestamp</code> (ISO 8601), <code>category</code> (will be <code>"call"</code> after filtering), <code>severity</code> (<code>debug</code> / <code>info</code> / <code>warning</code> / <code>error</code>), <code>source</code> (which subsystem logged it), <code>summary</code>, optional <code>detail</code>, optional <code>roomId</code>, and a <code>metadata</code> key-value map.</p>
+
+    <p>Sample event:</p>
+
+    <pre><code>{
+  "timestamp": "2026-06-12T14:30:05.123Z",
+  "category": "call",
+  "severity": "info",
+  "source": "LiveKitCredentialService",
+  "summary": "SFU URL discovered",
+  "roomId": "!abc:example.org",
+  "metadata": {}
+}</code></pre>
+
+    <h2>What's safe to share</h2>
+
+    <p>The export contains:</p>
+    <ul>
+        <li>Your Matrix room ID (<code>!&hellip;:server</code>) and device IDs</li>
+        <li>Per-call membership UUIDs and key indices</li>
+        <li>Your homeserver hostname</li>
+        <li>SHA-256 fingerprints (first 8 hex chars) of encryption keys, <strong>never the keys themselves</strong></li>
+    </ul>
+
+    <p>It does <strong>not</strong> contain:</p>
+    <ul>
+        <li>Raw E2EE keys</li>
+        <li>OpenID tokens or LiveKit JWTs</li>
+        <li>Message contents, names, or avatars</li>
+        <li>The OpenID access token used for SFU auth</li>
+    </ul>
+
+    <div class="callout tip">
+        <p><strong class="callout-label">Tip: </strong>If you don't want your room IDs or device IDs in a public bug report, ask whoever you are reporting to for a private channel and share the file there.</p>
+    </div>
+
+    <h2>Reading the export yourself</h2>
+
+    <p>A few specific log lines act as signposts. If your file contains any of these, you can pre-diagnose your own issue.</p>
+
+    <h3>Connection-time signals</h3>
+
+    <table>
+        <thead>
+            <tr><th>Look for</th><th>What it means</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>Fetching call credentials</code></td>
+                <td>The call attempt started; subsequent events should show whether discovery and token exchange succeeded.</td>
+            </tr>
+            <tr>
+                <td><code>SFU URL discovered</code></td>
+                <td>Your homeserver advertises a LiveKit SFU. Good.</td>
+            </tr>
+            <tr>
+                <td><code>Failed to fetch call credentials</code> with <code>"This homeserver has no LiveKit call server configured&hellip;"</code></td>
+                <td>Your homeserver doesn't expose <code>org.matrix.msc4143.rtc_foci</code> in <code>.well-known/matrix/client</code>, and the unstable transports endpoint isn't supported. Ask your homeserver admin to configure MatrixRTC.</td>
+            </tr>
+            <tr>
+                <td><code>Call credentials obtained</code></td>
+                <td>Token exchange succeeded. If the call still fails after this, the problem is downstream of credential acquisition.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Connected-but-no-media signals</h3>
+
+    <p>If the call reaches the <strong>Connected to call</strong> event but you can't see or hear anyone, the failure is in the encryption-key exchange or frame routing.</p>
+
+    <table>
+        <thead>
+            <tr><th>Look for</th><th>What it means</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>Distributed E2EE key to N user(s)</code> followed by <code>Received E2EE key from &hellip;</code> for each peer</td>
+                <td>Key exchange is happening. If you still have no media, the problem is in the frame-decoder routing &mdash; note the participant identity in the event's <code>detail</code>, this is the identity LiveKit assigned to the peer.</td>
+            </tr>
+            <tr>
+                <td>No <code>Received E2EE key from &hellip;</code> events at all</td>
+                <td>Peers aren't sending you their keys, or the widget bridge isn't running. Check whether the room is configured as encrypted (E2EE is enabled only for encrypted Matrix rooms).</td>
+            </tr>
+            <tr>
+                <td><code>Widget bridge started</code> but no later events</td>
+                <td>The widget driver is waiting for capability negotiation that never completes. Likely an SDK or homeserver-side issue.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Patterns worth flagging in a bug report</h3>
+
+    <p>These specific event sequences point to a known class of failure:</p>
+
+    <ol>
+        <li><strong>No <code>Call credentials obtained</code> event after <code>Fetching call credentials</code>.</strong> Credential exchange is failing. Almost always a homeserver-side or SFU-side configuration problem; the maintainers will need to know which homeserver you're on.</li>
+        <li><strong><code>Connected to call</code> but no <code>Distributed E2EE key</code> event.</strong> The Matrix call-member state event went out, but no peers existed at the time you connected, or the local cache of call members is stale. If others were already in the call, this is a Plic bug worth reporting.</li>
+        <li><strong><code>Received E2EE key from &hellip;</code> events present, but you still see no media from those peers.</strong> Frame-cryptor routing is misaligned with the LiveKit participant identity. Please attach the export and note the LiveKit participant identity you see in those events' <code>detail</code> field.</li>
+    </ol>
+
+    <h2>When the Activity Log isn't enough</h2>
+
+    <p>For really hard cases (the SFU is rejecting our JWT with no useful error, or the LiveKit room itself never finishes initialising) the maintainers sometimes need a unified-log capture, which records the low-level RTC trace from inside the LiveKit SDK.</p>
+
+    <p>While the call is reproducing the issue, run in a terminal:</p>
+
+    <pre><code>log stream --predicate 'subsystem == "RelayKit" AND category BEGINSWITH "Call"' \
+           --level info &gt; relay-call-trace.log</code></pre>
+
+    <p>Stop with <kbd>&#x2303;C</kbd> once the call has failed, then share <code>relay-call-trace.log</code> alongside the Activity Log JSON.</p>
+
+    <p>The unified-log capture contains more verbose internal trace including LiveKit SDK output. It's safe in the same way the Activity Log is (no key material, no tokens), but it does contain more verbose timing and routing data. Share it through the same channel you'd share the JSON.</p>
+
+    <h2>Reporting</h2>
+
+    <p>When reporting a call problem, please include:</p>
+
+    <ul>
+        <li>The <code>relay-activity-log.json</code> export (filtered to the Call category)</li>
+        <li>Your homeserver hostname (e.g. <code>matrix.example.org</code>)</li>
+        <li>Whether other clients (Element X, Element Web) succeed at calling on the same account</li>
+        <li>A one-line description of what you saw: "fails to connect", "connects but no audio", "connects but no video", etc.</li>
+    </ul>
+
+    <p>If you'd rather not put logs in a public issue, send them privately to maintainers in the Matrix room first.</p>
+
+    <div class="see-also">
+        <h2>See also</h2>
+        <ul>
+            <li><a href="making-calls.html">Make and join calls</a></li>
+            <li><a href="activity-log.html">Use the Activity Log</a></li>
+            <li><a href="reporting-issues.html">Report an issue</a></li>
+        </ul>
+    </div>
+</body>
+</html>

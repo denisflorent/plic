@@ -1,0 +1,106 @@
+// Copyright 2026 Link Dupont
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import RelayInterface
+import SwiftUI
+
+/// A mock ``CallViewModelProtocol`` for SwiftUI previews.
+///
+/// Simulates a connected call with sample participants after a short delay.
+/// All methods are safe to call from the main actor, and no real media or
+/// network connections are established.
+@Observable
+@MainActor
+final class PreviewCallViewModel: CallViewModelProtocol {
+    var state: CallState = .idle
+    var participants: [CallParticipant] = []
+    var isLocalCameraEnabled: Bool = false
+    var isLocalMicrophoneEnabled: Bool = false
+    var localParticipantID: String? = nil
+    var videoTrackRevision: UInt = 0
+    var connectingPhase: String? = nil
+    var availableCameras: [CameraDevice] = [
+        CameraDevice(id: "builtin", name: "FaceTime HD Camera", kind: .builtIn),
+        CameraDevice(id: "iphone", name: "iPhone (Continuity)", kind: .continuity)
+    ]
+    var selectedCameraID: String? = "builtin"
+    var availableAudioInputs: [AudioInputDevice] = [
+        AudioInputDevice(id: "builtin-mic", name: "MacBook Pro Microphone"),
+        AudioInputDevice(id: "usb-mic", name: "USB Audio Interface")
+    ]
+    var selectedAudioInputID: String? = "builtin-mic"
+
+    func connect(url: String, token: String, sfuServiceURL: String, video: Bool) async throws {
+        state = .connecting
+        try? await Task.sleep(for: .milliseconds(800))
+        isLocalCameraEnabled = true
+        isLocalMicrophoneEnabled = true
+        localParticipantID = "@preview:matrix.org"
+        participants = [
+            CallParticipant(
+                id: "@alice:matrix.org",
+                displayName: "Alice Smith",
+                isCameraEnabled: true,
+                isMicrophoneEnabled: true,
+                isSpeaking: true
+            ),
+            CallParticipant(
+                id: "@bob:matrix.org",
+                displayName: "Bob Chen",
+                isCameraEnabled: false,
+                isMicrophoneEnabled: true,
+                isSpeaking: false
+            )
+        ]
+        state = .connected
+    }
+
+    func disconnect() async {
+        state = .disconnected
+        participants = []
+        isLocalCameraEnabled = false
+        isLocalMicrophoneEnabled = false
+        localParticipantID = nil
+    }
+
+    func toggleCamera() async throws {
+        isLocalCameraEnabled.toggle()
+    }
+
+    func toggleMicrophone() async throws {
+        isLocalMicrophoneEnabled.toggle()
+    }
+
+    func refreshCameras() async {}
+
+    func selectCamera(_ device: CameraDevice) async throws {
+        selectedCameraID = device.id
+    }
+
+    func refreshAudioInputs() async {}
+
+    func selectAudioInput(_ device: AudioInputDevice) async throws {
+        selectedAudioInputID = device.id
+    }
+
+    func makeVideoView(for participantID: String) -> AnyView? { nil }
+    func videoAspectRatio(for participantID: String) -> CGFloat? { 16.0 / 9.0 }
+
+    var isCaptionsEnabled: Bool = false
+    var captions: [String: String] = [:]
+    func setCaptionsEnabled(_ enabled: Bool) async {
+        isCaptionsEnabled = enabled
+        if !enabled { captions.removeAll() }
+    }
+}

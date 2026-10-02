@@ -1,0 +1,751 @@
+// Copyright 2026 Link Dupont
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import AppKit
+import SwiftUI
+
+/// An `NSViewRepresentable` wrapping an `NSTextView` with inline mention pill support.
+///
+/// ``ComposeTextView`` hosts ``PillTextAttachment`` pills rendered as live
+/// SwiftUI views via ``PillTextAttachmentViewProvider``. It supports:
+/// - Return to send, Shift+Return for newline
+/// - Arrow key / Tab / Escape navigation for mention suggestions
+/// - Atomic deletion of pill attachments
+/// - Auto-sizing height (one line up to ``ComposeInputTextView/maximumVisibleLines``, scrollable beyond)
+/// - Placeholder text when empty
+///
+/// Height is reported via the `onHeightChange` callback after every text
+/// edit. The parent view should use `.frame(height:)` to size this view.
+struct ComposeTextView: NSViewRepresentable {
+    @Binding var text: String
+    @Binding var mentionQuery: String?
+    /// Set by the representable on creation; the owner can call this closure
+    /// to insert a mention pill at the current `@query` position.
+    @Binding var insertMentionHandler: ((_ userId: String, _ displayName: String) -> Void)?
+    /// Set by the representable on creation; the owner can call this closure to
+    /// insert plain text at the caret, replacing any selection.
+    @Binding var insertTextHandler: ((String) -> Void)?
+    var onSubmit: () -> Void
+    var onCancel: (() -> Void)?
+    var onHeightChange: ((CGFloat) -> Void)?
+    var onMentionNavigateUp: (() -> Void)?
+    var onMentionNavigateDown: (() -> Void)?
+    var onMentionConfirm: (() -> Bool)?
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeNSView(context: Context) -> ComposeScrollView {
+        // Note: despite what this comment used to claim, the view ends up on
+        // TextKit 1 — `textLayoutManager` is nil at runtime. The pills render
+        // regardless, but a height measurement written against TextKit 2 read
+        // zero here and silently pinned the field to one line, so check the
+        // stack rather than trusting the initializer.
+        let textView = ComposeInputTextView(frame: NSRect(x: 0, y: 0, width: 200, height: 22))
+        textView.textContainer?.lineFragmentPadding = 4
+        textView.textContainer?.widthTracksTextView = true
+        textView.textContainer?.size = NSSize(width: 200, height: CGFloat.greatestFiniteMagnitude)
+        textView.isRichText = true
+        textView.allowsUndo = true
+        textView.isEditable = true
+        textView.isSelectable = true
+        textView.drawsBackground = false
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
+        textView.textContainerInset = NSSize(width: 8, height: 10)
+        textView.font = MessageTextScale.baseFont
+        textView.typingAttributes = [
+            .font: MessageTextScale.baseFont,
+            .foregroundColor: NSColor.textColor,
+        ]
+        // AppKit draws a focus ring around the text view whenever it is first
+        // responder. The field already has its own hairline and sits inside a
+        // glass bar with its own outline, so the ring landed as a third border
+        // on the same edge — and it is the compose field, which is focused
+        // almost all the time, making the ring permanent decoration rather
+        // than a signal.
+        textView.focusRingType = .none
+        textView.placeholderString = "Message"
+        textView.delegate = context.coordinator
+        textView.keyDelegate = context.coordinator
+
+        let scrollView = ComposeScrollView()
+        scrollView.documentView = textView
+        scrollView.hasVerticalScroller = false
+        scrollView.hasHorizontalScroller = false
+        scrollView.drawsBackground = false
+        scrollView.automaticallyAdjustsContentInsets = false
+        scrollView.focusRingType = .none
+        scrollView.linkedTextView = textView
+
+        context.coordinator.textView = textView
+        context.coordinator.startObservingTextScale()
+
+        // Expose the mention insertion closure to the parent view.
+        // Safe to assign synchronously because `insertMentionHandler` is
+        // @ObservationIgnored, so this write cannot invalidate the view graph.
+        let coordinator = context.coordinator
+        self.insertMentionHandler = { [weak coordinator] userId, displayName in
+            coordinator?.insertMention(userId: userId, displayName: displayName)
+        }
+        self.insertTextHandler = { [weak coordinator] text in
+            coordinator?.insertText(text)
+        }
+        // cachedHeight's stored-property default is seeded at the unscaled
+        // system font size; recompute it now that `font` is set to the
+        // persisted zoom scale so a launch at a non-default zoom doesn't
+        // report a too-short initial height.
+        textView.recalculateHeight()
+        let heightCallback = onHeightChange
+        let initialHeight = textView.cachedHeight
+        Task { @MainActor in
+            heightCallback?(initialHeight)
+        }
+
+        // Restore spell check preferences.
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: "relay.continuousSpellChecking") != nil {
+            textView.isContinuousSpellCheckingEnabled = defaults.bool(forKey: "relay.continuousSpellChecking")
+        }
+        if defaults.object(forKey: "relay.grammarChecking") != nil {
+            textView.isGrammarCheckingEnabled = defaults.bool(forKey: "relay.grammarChecking")
+        }
+
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: ComposeScrollView, context: Context) {
+        context.coordinator.parent = self
+
+        // Always re-establish the mention insertion handler so it
+        // points at the current coordinator. The handler can become
+        // stale in two ways:
+        //  1. The backing ComposeViewModel was replaced by the draft
+        //     store (nil handler on the new instance).
+        //  2. The user switched away and back; the draft store keeps
+        //     the old ComposeViewModel whose handler holds a dead weak
+        //     reference to the previous (deallocated) coordinator.
+        // Safe to assign synchronously because `insertMentionHandler`
+        // is @ObservationIgnored, so this write cannot invalidate the
+        // view graph.
+        let coordinator = context.coordinator
+        self.insertMentionHandler = { [weak coordinator] userId, displayName in
+            coordinator?.insertMention(userId: userId, displayName: displayName)
+        }
+        self.insertTextHandler = { [weak coordinator] text in
+            coordinator?.insertText(text)
+        }
+
+        guard let textView = scrollView.linkedTextView else { return }
+        guard !context.coordinator.didPushTextChange else {
+            context.coordinator.didPushTextChange = false
+            return
+        }
+
+        // Only update if the plain text actually differs (e.g. cleared after send).
+        let currentPlain = context.coordinator.plainText(from: textView.textStorage!)
+        if currentPlain != text {
+            let font = Coordinator.composeFontForText(text)
+            let storage = textView.textStorage!
+            storage.beginEditing()
+            storage.replaceCharacters(in: NSRange(location: 0, length: storage.length), with: text)
+            storage.setAttributes([
+                .font: font,
+                .foregroundColor: NSColor.textColor,
+            ], range: NSRange(location: 0, length: storage.length))
+            storage.endEditing()
+            textView.typingAttributes = [
+                .font: font,
+                .foregroundColor: NSColor.textColor,
+            ]
+            textView.recalculateHeight()
+            // Defer to the next main actor turn to avoid
+            // "Modifying state during view update".
+            let height = textView.cachedHeight
+            let callback = onHeightChange
+            Task { @MainActor in
+                callback?(height)
+            }
+        }
+    }
+
+    // MARK: - Coordinator
+
+    final class Coordinator: NSObject, NSTextViewDelegate, ComposeInputKeyDelegate {
+        var parent: ComposeTextView
+        weak var textView: ComposeInputTextView?
+
+        /// Set to `true` when the coordinator pushes a text change to prevent
+        /// `updateNSView` from re-setting the text storage (avoiding crashes).
+        var didPushTextChange = false
+
+        init(parent: ComposeTextView) {
+            self.parent = parent
+        }
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+
+        /// Re-applies the compose font and re-measures the field whenever the
+        /// timeline text-zoom level changes, so the compose bar scales in step
+        /// with the conversation.
+        func startObservingTextScale() {
+            NotificationCenter.default.removeObserver(
+                self, name: MessageTextScale.didChangeNotification, object: nil
+            )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(textScaleDidChange),
+                name: MessageTextScale.didChangeNotification,
+                object: nil
+            )
+        }
+
+        @objc private func textScaleDidChange() {
+            guard let textView else { return }
+            let font = Coordinator.composeFontForText(parent.text)
+            // `NSText.font` re-fonts all existing characters and sets the default
+            // for typing and the placeholder, so it covers the empty field too.
+            textView.font = font
+            textView.typingAttributes[.font] = font
+            if let storage = textView.textStorage {
+                rescalePillAttachments(in: storage)
+            }
+            textView.recalculateHeight()
+            parent.onHeightChange?(textView.cachedHeight)
+        }
+
+        /// Rebuilds any inline mention pills at the new base font size so typed
+        /// mentions scale with the zoom. A pill's attachment image is rendered
+        /// once at creation, so it doesn't otherwise resize.
+        private func rescalePillAttachments(in storage: NSTextStorage) {
+            let fullRange = NSRange(location: 0, length: storage.length)
+            var replacements: [(NSRange, PillTextAttachment)] = []
+            storage.enumerateAttribute(.attachment, in: fullRange, options: []) { value, range, _ in
+                guard let old = value as? PillTextAttachment else { return }
+                replacements.append((
+                    range,
+                    PillTextAttachment(
+                        userId: old.userId, displayName: old.displayName,
+                        font: MessageTextScale.baseFont
+                    )
+                ))
+            }
+            guard !replacements.isEmpty else { return }
+            storage.beginEditing()
+            for (range, pill) in replacements {
+                storage.addAttribute(.attachment, value: pill, range: range)
+            }
+            storage.endEditing()
+        }
+
+        // MARK: - Plain Text Extraction
+
+        /// Extracts plain text from the text storage, replacing pill attachments
+        /// with their user ID.
+        func plainText(from storage: NSTextStorage) -> String {
+            var result = ""
+            storage.enumerateAttributes(in: NSRange(location: 0, length: storage.length)) { attrs, range, _ in
+                if let attachment = attrs[.attachment] as? PillTextAttachment {
+                    result += attachment.userId
+                } else {
+                    result += (storage.string as NSString).substring(with: range)
+                }
+            }
+            return result
+        }
+
+        // MARK: - NSTextViewDelegate
+
+        /// The font size used for emoji-only compose text.
+        private static let emojiFontSize: CGFloat = 40
+
+        func textDidChange(_ notification: Notification) {
+            guard let textView else { return }
+            let storage = textView.textStorage!
+
+            // Sync plain text to the binding.
+            didPushTextChange = true
+            let newText = plainText(from: storage)
+            parent.text = newText
+
+            // Switch to a larger font when the draft is emoji-only.
+            let font = Self.composeFontForText(newText)
+            textView.typingAttributes = [
+                .font: font,
+                .foregroundColor: NSColor.textColor,
+            ]
+            applyFont(font, to: storage)
+
+            // Detect mention query based on cursor position.
+            let cursorPosition = textView.selectedRange().location
+            detectMentionQuery(in: storage, cursorPosition: cursorPosition)
+
+            textView.recalculateHeight()
+            parent.onHeightChange?(textView.cachedHeight)
+        }
+
+        /// Returns the appropriate compose font: large for emoji-only text, normal otherwise.
+        static func composeFontForText(_ text: String) -> NSFont {
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty && trimmed.isEmojiOnly {
+                return .systemFont(ofSize: emojiFontSize * MessageTextScale.scale)
+            }
+            return MessageTextScale.baseFont
+        }
+
+        /// Applies a font to the entire text storage, skipping pill attachments.
+        private func applyFont(_ font: NSFont, to storage: NSTextStorage) {
+            let fullRange = NSRange(location: 0, length: storage.length)
+            guard fullRange.length > 0 else { return }
+            storage.beginEditing()
+            storage.enumerateAttributes(in: fullRange) { attrs, range, _ in
+                // Don't change the font on pill attachments.
+                if attrs[.attachment] is PillTextAttachment { return }
+                storage.addAttribute(.font, value: font, range: range)
+            }
+            storage.endEditing()
+        }
+
+        func textView(
+            _ textView: NSTextView,
+            shouldChangeTextIn affectedCharRange: NSRange,
+            replacementString: String?
+        ) -> Bool {
+            // During IME composition the system must have full control over
+            // text replacements; skip the pill-protection logic entirely.
+            if textView.hasMarkedText() { return true }
+
+            guard let storage = textView.textStorage else { return true }
+
+            // Collect every pill attachment that intersects the edit range.
+            var partialPillRange: NSRange?
+            storage.enumerateAttribute(
+                .attachment,
+                in: NSRange(location: 0, length: storage.length)
+            ) { value, range, stop in
+                guard value is PillTextAttachment else { return }
+                let intersection = NSIntersectionRange(affectedCharRange, range)
+                guard intersection.length > 0 else { return }
+
+                // If the edit fully contains this pill, no special handling
+                // is needed — the pill will be removed as part of the
+                // standard text replacement (e.g. Cmd+A then Delete).
+                let editContainsPill =
+                    affectedCharRange.location <= range.location
+                    && NSMaxRange(affectedCharRange) >= NSMaxRange(range)
+                if editContainsPill { return }
+
+                // The edit only partially touches a pill — we need to
+                // expand the deletion to the whole pill.
+                partialPillRange = range
+                stop.pointee = true
+            }
+
+            if let partialPillRange {
+                // Delete the entire pill instead of partially editing it.
+                storage.beginEditing()
+                storage.replaceCharacters(in: partialPillRange, with: "")
+                storage.endEditing()
+                textView.setSelectedRange(NSRange(location: partialPillRange.location, length: 0))
+                textDidChange(Notification(name: NSText.didChangeNotification, object: textView))
+                return false
+            }
+
+            return true
+        }
+
+        // MARK: - Key Handling
+
+        func composeTextView(_ textView: ComposeInputTextView, shouldHandleKeyDown event: NSEvent) -> Bool {
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
+            // Return key handling
+            if event.keyCode == 36 { // Return
+                if flags.contains(.shift) {
+                    // Shift+Return → insert newline
+                    textView.insertNewlineIgnoringFieldEditor(nil)
+                    return true
+                }
+                if parent.mentionQuery != nil {
+                    // Return with mention popup → confirm selection.
+                    // If there are no suggestions the confirm is a no-op;
+                    // fall through to send instead of swallowing the key.
+                    if parent.onMentionConfirm?() == true {
+                        return true
+                    }
+                }
+                // Plain Return (or no suggestions) → send
+                parent.onSubmit()
+                return true
+            }
+
+            // Escape → dismiss mention popup, or cancel reply/edit
+            if event.keyCode == 53 {
+                if parent.mentionQuery != nil {
+                    parent.mentionQuery = nil
+                    return true
+                }
+                if let onCancel = parent.onCancel {
+                    onCancel()
+                    return true
+                }
+                return false
+            }
+
+            // Arrow keys for mention navigation
+            if parent.mentionQuery != nil {
+                if event.keyCode == 126 { // Up arrow
+                    parent.onMentionNavigateUp?()
+                    return true
+                }
+                if event.keyCode == 125 { // Down arrow
+                    parent.onMentionNavigateDown?()
+                    return true
+                }
+            }
+
+            return false
+        }
+
+        func composeTextViewShouldConfirmOnTab(_ textView: ComposeInputTextView) -> Bool {
+            if parent.mentionQuery != nil {
+                _ = parent.onMentionConfirm?()
+                return true
+            }
+            return false
+        }
+
+        // MARK: - Mention Query Detection
+
+        /// Walks backward from the cursor looking for `@` preceded by whitespace
+        /// or start-of-string, then sets `mentionQuery` to the text between `@` and cursor.
+        private func detectMentionQuery(in storage: NSTextStorage, cursorPosition: Int) {
+            guard cursorPosition > 0 else {
+                parent.mentionQuery = nil
+                return
+            }
+
+            let string = storage.string as NSString
+
+            // Walk backward from cursor to find '@'
+            var i = cursorPosition - 1
+            while i >= 0 {
+                let char = string.character(at: i)
+                guard let scalar = Unicode.Scalar(char) else { i -= 1; continue }
+
+                // If we hit whitespace or newline before finding '@', no mention
+                if CharacterSet.whitespacesAndNewlines.contains(scalar) {
+                    parent.mentionQuery = nil
+                    return
+                }
+
+                if scalar == "@" {
+                    // '@' must be at start or preceded by whitespace
+                    let precededBySpace = i == 0 || {
+                        guard let prev = Unicode.Scalar(string.character(at: i - 1)) else { return false }
+                        return CharacterSet.whitespacesAndNewlines.contains(prev)
+                    }()
+                    if precededBySpace {
+                        // Check the '@' isn't inside a pill attachment
+                        var insidePill = false
+                        storage.enumerateAttribute(
+                            .attachment,
+                            in: NSRange(location: i, length: 1)
+                        ) { value, _, _ in
+                            if value is PillTextAttachment { insidePill = true }
+                        }
+                        if insidePill {
+                            parent.mentionQuery = nil
+                            return
+                        }
+
+                        let queryStart = i + 1
+                        let query = string.substring(
+                            with: NSRange(location: queryStart, length: cursorPosition - queryStart)
+                        )
+                        parent.mentionQuery = query
+                        return
+                    }
+                    // '@' not preceded by whitespace — not a mention trigger
+                    parent.mentionQuery = nil
+                    return
+                }
+
+                i -= 1
+            }
+
+            parent.mentionQuery = nil
+        }
+
+        // MARK: - Mention Insertion
+
+        /// Inserts a mention pill at the current `@query` position.
+        ///
+        /// Replaces the `@query` text with a ``PillTextAttachment`` character
+        /// that renders as an inline pill. Adds `.mentionUserID` and
+        /// `.mentionDisplayName` attributes for later extraction.
+        /// Inserts plain text at the caret, replacing the selection if there is one.
+        ///
+        /// Used by the emoji picker. The text view keeps its selection while the
+        /// popover holds first responder, so the emoji lands where the caret was
+        /// rather than being appended.
+        func insertText(_ text: String) {
+            guard !text.isEmpty, let textView, let storage = textView.textStorage else { return }
+
+            let range = textView.selectedRange()
+            let font = textView.font ?? .systemFont(ofSize: NSFont.systemFontSize)
+            let insertion = NSAttributedString(string: text, attributes: [
+                .font: font,
+                .foregroundColor: NSColor.textColor,
+            ])
+
+            storage.beginEditing()
+            storage.replaceCharacters(in: range, with: insertion)
+            storage.endEditing()
+
+            textView.setSelectedRange(NSRange(location: range.location + insertion.length, length: 0))
+            textDidChange(Notification(name: NSText.didChangeNotification, object: textView))
+        }
+
+        func insertMention(userId: String, displayName: String) {
+            guard let textView, let storage = textView.textStorage else { return }
+            let nsString = storage.string as NSString
+            let cursorPosition = textView.selectedRange().location
+
+            // Find the '@' that started this query by walking backward from cursor.
+            var atIndex: Int?
+            var i = cursorPosition - 1
+            while i >= 0 {
+                let char = nsString.character(at: i)
+                guard let scalar = Unicode.Scalar(char) else { i -= 1; continue }
+                if scalar == "@" {
+                    let precededBySpace = i == 0 || {
+                        guard let prev = Unicode.Scalar(nsString.character(at: i - 1)) else { return false }
+                        return CharacterSet.whitespacesAndNewlines.contains(prev)
+                    }()
+                    if precededBySpace {
+                        atIndex = i
+                    }
+                    break
+                }
+                if CharacterSet.whitespacesAndNewlines.contains(scalar) {
+                    break
+                }
+                i -= 1
+            }
+
+            guard let atIndex else { return }
+            let replaceRange = NSRange(location: atIndex, length: cursorPosition - atIndex)
+
+            let font = textView.font ?? .systemFont(ofSize: NSFont.systemFontSize)
+            let attachment = PillTextAttachment(userId: userId, displayName: displayName, font: font)
+
+            let attachmentString = NSMutableAttributedString(attachment: attachment)
+            attachmentString.addAttributes([
+                .mentionUserID: userId,
+                .mentionDisplayName: displayName,
+                .font: font,
+                .foregroundColor: NSColor.textColor,
+            ], range: NSRange(location: 0, length: attachmentString.length))
+
+            // Add a trailing space so the user can continue typing.
+            let trailing = NSAttributedString(string: " ", attributes: [
+                .font: font,
+                .foregroundColor: NSColor.textColor,
+            ])
+
+            let replacement = NSMutableAttributedString()
+            replacement.append(attachmentString)
+            replacement.append(trailing)
+
+            storage.beginEditing()
+            storage.replaceCharacters(in: replaceRange, with: replacement)
+            storage.endEditing()
+
+            let newCursor = atIndex + replacement.length
+            textView.setSelectedRange(NSRange(location: newCursor, length: 0))
+
+            textDidChange(Notification(name: NSText.didChangeNotification, object: textView))
+        }
+    }
+}
+
+// MARK: - Key Delegate Protocol
+
+/// Protocol for intercepting key events in the compose text view.
+protocol ComposeInputKeyDelegate: AnyObject {
+    func composeTextView(_ textView: ComposeInputTextView, shouldHandleKeyDown event: NSEvent) -> Bool
+    func composeTextViewShouldConfirmOnTab(_ textView: ComposeInputTextView) -> Bool
+}
+
+// MARK: - ComposeScrollView
+
+/// A scroll view that reports its intrinsic content size based on the text view's height.
+final class ComposeScrollView: NSScrollView {
+    weak var linkedTextView: ComposeInputTextView?
+
+    override var intrinsicContentSize: NSSize {
+        guard let textView = linkedTextView else { return super.intrinsicContentSize }
+        return textView.intrinsicContentSize
+    }
+}
+
+// MARK: - ComposeInputTextView
+
+/// An `NSTextView` subclass for the compose bar with key interception,
+/// placeholder drawing, and auto-sizing.
+final class ComposeInputTextView: NSTextView {
+    weak var keyDelegate: ComposeInputKeyDelegate?
+    var placeholderString: String?
+
+    /// How many lines the field grows to before it starts scrolling instead.
+    ///
+    /// Five was inherited from a phone-shaped layout. Signal caps its iPhone
+    /// composer at about five lines too and raises it by half again on iPad,
+    /// on the reasoning that a larger window can spare the room; a Mac window
+    /// is larger still, and drafting a paragraph without the field scrolling
+    /// under you is worth the space it costs the timeline.
+    static let maximumVisibleLines: CGFloat = 10
+
+    /// Cached content height, updated after every text change.
+    /// Initialized to a sensible single-line height (lineHeight + insets).
+    private(set) var cachedHeight: CGFloat = MessageTextScale.baseFontSize * 1.2 + 20
+    private var isRecalculatingHeight = false
+
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: NSView.noIntrinsicMetric, height: cachedHeight)
+    }
+
+    /// Recomputes the content height from the current layout and invalidates
+    /// intrinsic content size so SwiftUI picks up the change.
+    func recalculateHeight() {
+        guard !isRecalculatingHeight else { return }
+        isRecalculatingHeight = true
+        defer { isRecalculatingHeight = false }
+
+        let insets = textContainerInset
+        let lineHeight = (font ?? .systemFont(ofSize: NSFont.systemFontSize)).pointSize * 1.2
+        let minHeight = lineHeight + insets.height * 2
+        let maxHeight = lineHeight * Self.maximumVisibleLines + insets.height * 2
+
+        // Measure with whichever TextKit stack this view actually has.
+        //
+        // This used to read `textLayoutManager.usageBoundsForTextContainer`
+        // and nothing else. That property is TextKit 2 only, and this view
+        // runs on TextKit 1 — `textLayoutManager` is nil — so the measurement
+        // was always zero, the height always clamped to the one-line minimum,
+        // and a message that wrapped got clipped instead of growing the field.
+        //
+        // Both branches are kept rather than forcing a stack: the mention
+        // pills are rendered by NSTextAttachmentViewProvider, and moving this
+        // view between stacks is not a change to make while fixing a height.
+        var usedHeight: CGFloat = 0
+        if let textLayoutManager {
+            textLayoutManager.enumerateTextLayoutFragments(
+                from: textLayoutManager.documentRange.location,
+                options: [.ensuresLayout, .ensuresExtraLineFragment]
+            ) { fragment in
+                usedHeight += fragment.layoutFragmentFrame.height
+                return true
+            }
+        } else if let layoutManager, let textContainer {
+            layoutManager.ensureLayout(for: textContainer)
+            usedHeight = layoutManager.usedRect(for: textContainer).height
+        }
+
+        let newHeight = min(max(usedHeight + insets.height * 2, minHeight), maxHeight)
+        guard newHeight != cachedHeight else { return }
+        cachedHeight = newHeight
+        invalidateIntrinsicContentSize()
+        (enclosingScrollView as? ComposeScrollView)?.invalidateIntrinsicContentSize()
+    }
+
+    override func didChangeText() {
+        super.didChangeText()
+        recalculateHeight()
+    }
+
+    override func keyDown(with event: NSEvent) {
+        // When an input method (e.g. the emoji picker) has marked text,
+        // let the system handle the key event so Return confirms the
+        // selection instead of sending the message.
+        if hasMarkedText() {
+            super.keyDown(with: event)
+            return
+        }
+        if let keyDelegate, keyDelegate.composeTextView(self, shouldHandleKeyDown: event) {
+            return
+        }
+        super.keyDown(with: event)
+    }
+
+    override func doCommand(by selector: Selector) {
+        if selector == #selector(insertTab(_:)) {
+            if let keyDelegate, keyDelegate.composeTextViewShouldConfirmOnTab(self) {
+                return
+            }
+        }
+        super.doCommand(by: selector)
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+
+        // Draw placeholder when empty.
+        if string.isEmpty, let placeholder = placeholderString {
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: font ?? .systemFont(ofSize: NSFont.systemFontSize),
+                .foregroundColor: NSColor.placeholderTextColor,
+            ]
+            let insets = textContainerInset
+            let padding = textContainer?.lineFragmentPadding ?? 0
+            let origin = NSPoint(x: insets.width + padding, y: insets.height)
+            (placeholder as NSString).draw(at: origin, withAttributes: attrs)
+        }
+    }
+
+    // Deliberately does not grab first responder.
+    //
+    // This view is rebuilt every time the user switches room, so claiming focus
+    // here stole it from the sidebar on every selection. macOS then drew the
+    // selected row in its unfocused grey, and the room the user had just opened
+    // looked deselected until they clicked it a second time.
+    //
+    // The cost is that typing needs a click in the field, or Tab, after opening
+    // a room. Restoring the grab means also drawing the sidebar's selection
+    // ourselves so it stays accented without keyboard focus.
+
+    // MARK: - Paste as plain text
+
+    /// Restrict paste to plain text so styled content from other apps is
+    /// stripped. The text view must remain `isRichText = true` for pill
+    /// attachments, but user-pasted content should always be unstyled.
+    override var readablePasteboardTypes: [NSPasteboard.PasteboardType] {
+        [.string]
+    }
+
+    // Persist spell check preferences since the app isn't NSDocument-based.
+    override func toggleContinuousSpellChecking(_ sender: Any?) {
+        super.toggleContinuousSpellChecking(sender)
+        UserDefaults.standard.set(isContinuousSpellCheckingEnabled, forKey: "relay.continuousSpellChecking")
+    }
+
+    override func toggleGrammarChecking(_ sender: Any?) {
+        super.toggleGrammarChecking(sender)
+        UserDefaults.standard.set(isGrammarCheckingEnabled, forKey: "relay.grammarChecking")
+    }
+}

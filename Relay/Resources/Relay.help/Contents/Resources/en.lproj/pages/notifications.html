@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="Configure notification settings in Plic, including per-room modes, keywords, mentions, and system permissions.">
+    <meta name="keywords" content="notifications, alerts, notification content, message preview, mentions, keywords, mute, badge, dock, calls, invitations, push notifications">
+    <meta name="robots" content="anchors">
+    <title>Set up notifications</title>
+    <link rel="stylesheet" href="../../Shared/relay-help.css">
+    <script defer src="../../Shared/toc.js"></script>
+</head>
+<body>
+    <a name="notifications-settings"></a>
+    <p class="breadcrumb"><a href="../Plic.html">Plic Help</a> &rsaquo; Customization</p>
+
+    <h1>Set up notifications</h1>
+
+    <h2>Default notification levels</h2>
+    <p>Open <strong>Settings</strong> &rsaquo; <strong>Notifications</strong>. Set default notification behavior separately for direct messages and group rooms.</p>
+
+    <h2>Notification content</h2>
+    <p>In <strong>Settings</strong> &rsaquo; <strong>Notifications</strong>, the <strong>Show in Notifications</strong> menu sets what a message notification reveals:</p>
+    <ul>
+        <li><strong>Name and Message</strong> &mdash; who wrote, in which room, and what they wrote. This is the default.</li>
+        <li><strong>Name Only</strong> &mdash; who wrote and in which room, with &ldquo;New message&rdquo; in place of the text.</li>
+        <li><strong>No Name or Message</strong> &mdash; only &ldquo;Plic&rdquo; and &ldquo;New message&rdquo;.</li>
+    </ul>
+    <p>macOS keeps notifications in its own database, outside the encryption Plic applies to your messages, until you clear them. With <strong>Name and Message</strong>, that includes the decrypted text of messages from encrypted rooms.</p>
+
+    <h2>Per-room notification mode</h2>
+    <p>In the room inspector's <strong>Notifications</strong> tab, override the default for individual rooms:</p>
+    <ul>
+        <li><strong>All Messages</strong> &mdash; notify on every new message.</li>
+        <li><strong>Mentions &amp; Keywords Only</strong> &mdash; notify only when you're mentioned or a keyword matches.</li>
+        <li><strong>Mute</strong> &mdash; suppress all notifications from this room.</li>
+    </ul>
+
+    <h2>Mention notifications</h2>
+    <p>Toggle notifications for when you're directly mentioned (<strong>@you</strong>) and when the whole room is notified (<strong>@room</strong>).</p>
+
+    <h2>Keyword notifications</h2>
+    <p>Add custom keywords that trigger notifications when they appear in messages. Keywords appear as tags in <strong>Settings</strong> &rsaquo; <strong>Notifications</strong>.</p>
+
+    <h2>Call and invite notifications</h2>
+    <p>Toggle notification alerts for incoming calls and room invitations.</p>
+
+    <h2>Dock badge</h2>
+    <p>Plic shows an unread count on its Dock icon. The badge respects per-room notification modes, so muted rooms don't contribute to the count.</p>
+
+    <h2>System permissions</h2>
+    <p>If macOS notification permissions are denied, Plic shows a warning in <strong>Settings</strong> &rsaquo; <strong>Notifications</strong> with a link to <strong>System Settings</strong> &rsaquo; <strong>Notifications</strong>.</p>
+
+    <div class="callout note">
+        <p><strong class="callout-label">Note: </strong>If you have custom notification rules from another Matrix client that conflict with Plic's settings, Plic can detect and offer to repair the inconsistency.</p>
+    </div>
+
+    <div class="see-also">
+        <h2>See also</h2>
+        <ul>
+            <li><a href="room-settings.html">Room settings</a></li>
+            <li><a href="privacy-settings.html">Privacy settings</a></li>
+            <li><a href="appearance.html">Change the appearance</a></li>
+        </ul>
+    </div>
+</body>
+</html>

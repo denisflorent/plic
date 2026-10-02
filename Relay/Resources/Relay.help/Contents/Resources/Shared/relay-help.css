@@ -1,0 +1,408 @@
+/* Apple Help Book styling for Plic.
+   Designed for the ~520pt-wide Apple Help Viewer WebKit pane.
+   Follows modern macOS help documentation conventions. */
+
+:root {
+    color-scheme: light dark;
+
+    /* An adaptive foreground against a hard-coded background corrected by a
+       media query is not how you would write this from scratch, but it is the
+       combination that demonstrably renders, so leave it alone unless you can
+       actually test the replacement.
+       Testing it is the hard part: Help Viewer resolves a book through
+       LaunchServices by bundle identifier, so a development build sharing an
+       identifier with an installed copy never gets its own book served. Only
+       the app in /Applications can be checked, which means any change here
+       must be archived, signed and installed before it means anything. */
+    --fg:             -apple-system-label;
+    --fg-secondary:   -apple-system-secondary-label;
+    --fg-tertiary:    -apple-system-tertiary-label;
+    --bg:             #ffffff;
+    --bg-secondary:   #f5f5f7;
+    --separator:      -apple-system-separator;
+    --accent:         -apple-system-blue;
+    --code-bg:        #f5f5f7;
+
+    --callout-tip:    #34c759;
+    --callout-note:   #007aff;
+    --callout-important: #ff9500;
+    --callout-warning: #ff3b30;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg:           #1d1d1f;
+        --bg-secondary: #2c2c2e;
+        --code-bg:      #2c2c2e;
+    }
+}
+
+/* --- Base typography --- */
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    padding: 24px 32px 48px;
+    max-width: 640px;
+}
+
+/* --- Headings --- */
+
+h1, h2, h3 {
+    color: var(--fg);
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+h1 {
+    font-size: 22px;
+    margin: 0 0 0.4em;
+}
+
+h2 {
+    font-size: 16px;
+    margin-top: 1.6em;
+    border-bottom: 1px solid var(--separator);
+    padding-bottom: 4px;
+}
+
+h3 {
+    font-size: 14px;
+    margin-top: 1.4em;
+}
+
+/* --- Block elements --- */
+
+p, ul, ol, table {
+    margin: 0.6em 0;
+}
+
+ul, ol {
+    padding-left: 24px;
+}
+
+li {
+    margin: 0.2em 0;
+}
+
+li p {
+    margin: 0.3em 0;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid var(--separator);
+    margin: 1.6em 0;
+}
+
+/* --- Inline elements --- */
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+strong {
+    font-weight: 600;
+}
+
+code, kbd {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 0.92em;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+kbd {
+    border: 1px solid var(--separator);
+    box-shadow: 0 1px 0 var(--separator);
+    padding: 1px 6px;
+    font-size: 0.88em;
+}
+
+/* --- Preformatted blocks --- */
+
+pre {
+    background: var(--code-bg);
+    border: 1px solid var(--separator);
+    border-radius: 6px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 0.92em;
+    line-height: 1.45;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+}
+
+/* --- Tables --- */
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.8em 0;
+}
+
+th, td {
+    border: 1px solid var(--separator);
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+}
+
+/* --- Landing page header --- */
+
+.help-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0.6em;
+}
+
+.help-header img {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+}
+
+@media (-webkit-min-device-pixel-ratio: 2) {
+    .help-header img {
+        image-rendering: auto;
+    }
+}
+
+.help-header h1 {
+    margin: 0;
+}
+
+/* --- Landing page topic sections --- */
+
+.topic-section {
+    margin: 1.2em 0;
+}
+
+.topic-section h2 {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0.2em;
+}
+
+.topic-section p {
+    color: var(--fg-secondary);
+    margin: 0 0 0.4em;
+}
+
+.topic-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.topic-section li {
+    padding: 4px 0;
+}
+
+.topic-section li a {
+    font-weight: 500;
+}
+
+/* --- Topic list (legacy, retained for compatibility) --- */
+
+nav ul.topic-list {
+    list-style: none;
+    padding: 0;
+}
+
+nav ul.topic-list li {
+    border-bottom: 1px solid var(--separator);
+    padding: 10px 0;
+}
+
+nav ul.topic-list li:last-child {
+    border-bottom: none;
+}
+
+nav ul.topic-list a {
+    display: block;
+    font-weight: 500;
+}
+
+nav ul.topic-list .subtitle {
+    color: var(--fg-secondary);
+    font-weight: 400;
+    margin-top: 2px;
+}
+
+/* --- Breadcrumb navigation --- */
+
+.breadcrumb {
+    color: var(--fg-secondary);
+    font-size: 12px;
+    margin-bottom: 0.4em;
+}
+
+.breadcrumb a {
+    color: var(--fg-secondary);
+}
+
+.breadcrumb a:hover {
+    color: var(--accent);
+}
+
+/* --- Callouts --- */
+
+.callout {
+    background: var(--bg-secondary);
+    border-left: 3px solid var(--callout-note);
+    padding: 8px 12px;
+    margin: 1em 0;
+    border-radius: 4px;
+}
+
+.callout.tip {
+    border-left-color: var(--callout-tip);
+}
+
+.callout.important {
+    border-left-color: var(--callout-important);
+}
+
+.callout.warning {
+    border-left-color: var(--callout-warning);
+}
+
+.callout .callout-label {
+    font-weight: 600;
+    display: inline;
+}
+
+.callout p {
+    margin: 0.3em 0;
+}
+
+.callout p:first-child {
+    margin-top: 0;
+}
+
+.callout p:last-child {
+    margin-bottom: 0;
+}
+
+/* --- See also --- */
+
+.see-also {
+    margin-top: 2em;
+    padding-top: 0.6em;
+    border-top: 1px solid var(--separator);
+}
+
+.see-also h2 {
+    border-bottom: none;
+    padding-bottom: 0;
+    font-size: 14px;
+    margin-top: 0;
+}
+
+.see-also ul {
+    list-style: none;
+    padding: 0;
+}
+
+.see-also li {
+    padding: 2px 0;
+}
+
+/* --- Table of contents --- */
+
+.toc-link {
+    display: inline-block;
+    margin-bottom: 0.8em;
+    font-size: 12px;
+}
+
+.toc ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.toc > ul > li {
+    margin: 0.4em 0;
+}
+
+.toc details {
+    margin: 0.2em 0;
+}
+
+.toc summary {
+    cursor: pointer;
+    font-weight: 600;
+    padding: 4px 0;
+    list-style-position: outside;
+    color: var(--fg);
+}
+
+.toc summary:hover {
+    color: var(--accent);
+}
+
+.toc details ul {
+    padding-left: 20px;
+    margin: 0.2em 0;
+}
+
+.toc details li {
+    padding: 2px 0;
+}
+
+/* --- Keyboard shortcut reference table --- */
+
+.shortcut-table {
+    margin: 1em 0;
+}
+
+.shortcut-table td:first-child {
+    white-space: nowrap;
+    width: 40%;
+}
+
+/* --- Muted/secondary text --- */
+
+.muted {
+    color: var(--fg-secondary);
+}
+
+.tertiary {
+    color: var(--fg-tertiary);
+}
+
+/* --- Footer --- */
+
+.help-footer {
+    margin-top: 2em;
+    padding-top: 1em;
+    border-top: 1px solid var(--separator);
+    color: var(--fg-secondary);
+    font-size: 12px;
+}

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="Learn how to make and join audio and video calls in Plic using MatrixRTC.">
+    <meta name="keywords" content="calls, audio, video, MatrixRTC, LiveKit, microphone, camera, VoIP">
+    <meta name="robots" content="anchors">
+    <title>Make and join calls</title>
+    <link rel="stylesheet" href="../../Shared/relay-help.css">
+    <script defer src="../../Shared/toc.js"></script>
+</head>
+<body>
+    <a name="making-calls"></a>
+
+    <div class="breadcrumb">Calls</div>
+
+    <h1>Make and join calls</h1>
+
+    <h2>About MatrixRTC calls</h2>
+    <p>Plic uses MatrixRTC with LiveKit for audio and video calls. Calls are end-to-end encrypted in encrypted rooms. Your homeserver must have a LiveKit SFU configured to support calls.</p>
+
+    <h2>Start a call</h2>
+    <ol>
+        <li>Click the <strong>Call</strong> button in the toolbar of any room.</li>
+        <li>A confirmation dialog appears.</li>
+        <li>The call opens in a dedicated window.</li>
+    </ol>
+
+    <h2>Join an ongoing call</h2>
+    <p>When someone else starts a call in a room, the toolbar button changes to <strong>Join Call</strong>. Click it to join.</p>
+
+    <h2>Call controls</h2>
+    <p>The call window has a translucent floating control bar at the bottom:</p>
+    <ul>
+        <li><strong>Microphone toggle:</strong> mute or unmute your microphone.</li>
+        <li><strong>Camera toggle:</strong> enable or disable your camera.</li>
+        <li><strong>End call:</strong> the red phone button disconnects you from the call.</li>
+    </ul>
+
+    <h2>Multi-participant calls</h2>
+    <p>With multiple participants, video feeds arrange in a responsive tile grid. Each participant's tile shows their video, name, and microphone status. A glow effect indicates who is currently speaking.</p>
+
+    <h2>Connection phases</h2>
+    <p>When connecting, Plic shows step indicators as it contacts the call server and sets up the media connection. This typically takes a few seconds.</p>
+
+    <div class="callout important">
+        <p><strong class="callout-label">Important: </strong>If Plic shows a permissions error, you may need to grant microphone and camera access in System Settings &gt; Privacy &amp; Security.</p>
+    </div>
+
+    <div class="callout note">
+        <p><strong class="callout-label">Note: </strong>Calls require your homeserver to have MatrixRTC configured. If you see a credentials error, ask your homeserver administrator about MatrixRTC support.</p>
+    </div>
+
+    <div class="see-also">
+        <h2>See also</h2>
+        <ul>
+            <li><a href="troubleshooting-calls.html">Troubleshoot calls</a></li>
+            <li><a href="encryption-and-verification.html">Encryption and session verification</a></li>
+        </ul>
+    </div>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Privacy manifest. App Store Connect rejects binaries that use a
+	  "required reason" API without declaring why.
+
+	  Plic collects nothing. It has no analytics, no crash reporting, no
+	  telemetry and no server of its own — it talks only to the homeserver the
+	  user chose, and message content is end-to-end encrypted, so neither Plic
+	  nor its developer can read it. Hence the empty collected-data list and
+	  tracking set to false. If any of that ever changes, this file has to
+	  change with it: a stale privacy manifest is worse than none, because it
+	  is a claim.
+	-->
+
+	<key>NSPrivacyTracking</key>
+	<false/>
+
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<!--
+			  UserDefaults, reached directly and through @AppStorage: appearance,
+			  timeline behaviour, the selected room, per-room overrides. All of it
+			  is this app's own preference state, shared with the share extension
+			  through the app group. None of it leaves the device.
+			-->
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+		<dict>
+			<!--
+			  FileManager.attributesOfItem, used to read the byte size of
+			  attachments and recordings the app itself created or downloaded.
+			  Declared conservatively: the size is what we want, but the call
+			  reaches stat(), which Apple lists under file timestamps. Over-
+			  declaring costs nothing; under-declaring is a rejection.
+			-->
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

@@ -1,0 +1,51 @@
+Plic
+Copyright 2026 Denis Florent Media Group SRL
+
+This product includes software developed by the Relay contributors
+(Link Dupont, Andrew Hunter, Lukas Frias Santos and others),
+licensed under the Apache License, Version 2.0.
+https://github.com/subpop/Relay
+
+Plic is a modified version of Relay. Files that came from Relay have been
+changed by Denis Florent Media Group SRL since Plic was forked from it in
+July 2026; this repository's history begins after those changes.
+
+--------------------------------------------------------------------------------
+
+This product bundles the following third-party software.
+
+Apache License 2.0 — full text in Relay/Resources/Licenses/Apache-2.0.txt
+
+  matrix-rust-sdk (Swift bindings)   Copyright The Matrix.org Foundation C.I.C.
+  https://github.com/matrix-org/matrix-rust-components-swift
+
+  LiveKit Swift SDK                  Copyright 2023 LiveKit, Inc.
+  https://github.com/livekit/client-sdk-swift
+  (see Relay/Resources/Licenses/LiveKit-NOTICE.txt — reproduced under
+   section 4(d) of the Apache License, which is mandatory because that
+   distribution includes a NOTICE file)
+
+  LiveKit UniFFI xcframework         Copyright LiveKit, Inc.
+  https://github.com/livekit/livekit-uniffi-xcframework
+
+  SwiftProtobuf                      Copyright Apple Inc. and the
+  https://github.com/apple/swift-protobuf                Swift project authors
+
+BSD 3-Clause — full texts alongside
+
+  WebRTC        Copyright (c) 2011, The WebRTC project authors
+                Relay/Resources/Licenses/WebRTC-LICENSE.txt
+
+  libopus       Copyright 2001-2023 Xiph.Org, Skype Limited, Octasic,
+                Jean-Marc Valin, Timothy B. Terriberry, CSIRO,
+                Gregory Maxwell, Mark Borgerding and others
+                Relay/Resources/Licenses/libopus-LICENSE.txt
+
+  libogg        Copyright (c) 2002, Xiph.org Foundation
+                Relay/Resources/Licenses/libogg-LICENSE.txt
+
+The BSD 3-Clause licences above require that their copyright notice, the
+list of conditions and the disclaimer be reproduced in the documentation or
+other materials accompanying a binary distribution. The Acknowledgements
+window inside the app is where that obligation is discharged for end users;
+this file discharges it for anyone receiving the source.

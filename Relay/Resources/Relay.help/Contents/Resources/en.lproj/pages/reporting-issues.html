@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="color-scheme" content="light dark">
+    <meta name="description" content="How to report bugs and issues in Plic, including what information to include and privacy considerations.">
+    <meta name="keywords" content="report, bug, issue, feedback, GitHub, Matrix, activity log, privacy">
+    <meta name="robots" content="anchors">
+    <title>Report an issue</title>
+    <link rel="stylesheet" href="../../Shared/relay-help.css">
+    <script defer src="../../Shared/toc.js"></script>
+</head>
+<body>
+    <a name="reporting-issues"></a>
+    <p class="breadcrumb"><a href="../Plic.html">Plic Help</a> &rsaquo; Troubleshooting</p>
+
+    <h1>Report an issue</h1>
+
+    <h2>What to include</h2>
+    <p>A good bug report includes:</p>
+    <ul>
+        <li>A clear description of what happened and what you expected</li>
+        <li>Steps to reproduce the issue</li>
+        <li>Your homeserver hostname (e.g., matrix.example.org)</li>
+        <li>Whether other Matrix clients (Element X, Element Web) show the same behavior</li>
+        <li>An Activity Log export filtered to the relevant category (see <a href="activity-log.html">Use the Activity Log</a>)</li>
+    </ul>
+
+    <h2>Export the Activity Log</h2>
+    <p>Open <strong>Window</strong> &gt; <strong>Activity Log</strong> (<kbd>&#x2325;&#x2318;A</kbd>), filter to the relevant category, and press <kbd>&#x2318;S</kbd> to save.</p>
+
+    <h2>Privacy considerations</h2>
+    <p>The Activity Log export contains room IDs, device IDs, and your homeserver hostname. It does not contain message content, encryption keys, or authentication tokens. If you prefer not to share this information publicly, contact the maintainers privately in the Matrix room.</p>
+
+    <div class="callout tip">
+        <p><strong class="callout-label">Tip: </strong>The more specific your bug report, the faster it can be diagnosed. "Calls don't work" is harder to investigate than "Audio calls connect but no sound is heard when calling from @user:example.org to @other:matrix.org."</p>
+    </div>
+
+    <div class="see-also">
+        <h2>See also</h2>
+        <ul>
+            <li><a href="activity-log.html">Use the Activity Log</a></li>
+            <li><a href="troubleshooting-calls.html">Troubleshoot call issues</a></li>
+            <li><a href="troubleshooting-login.html">Troubleshoot sign-in issues</a></li>
+            <li><a href="troubleshooting-sync.html">Troubleshoot sync issues</a></li>
+        </ul>
+    </div>
+</body>
+</html>
