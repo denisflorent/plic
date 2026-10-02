@@ -501,7 +501,7 @@ private struct NotificationPreviewSection: View {
         } header: {
             Text("Notification Content")
             // swiftlint:disable:next line_length
-            Text("macOS keeps notifications in its own database, outside the encryption Plic applies to your messages, until you clear them.")
+            Text("macOS keeps notifications in its own database, outside the encryption Plic applies to your messages, until you clear them. No Name or Message also keeps your conversations out of the Share menu.")
         }
     }
 }

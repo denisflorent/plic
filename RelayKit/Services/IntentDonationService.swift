@@ -37,6 +37,9 @@ final class IntentDonationService {
     /// for them: one finishing after the deletion would bring its room back.
     private var inFlight: [UUID: Task<Void, Never>] = [:]
 
+    /// Whether conversations are suggested to macOS at all.
+    private(set) var isEnabled = true
+
     private let donate: (INInteraction) async throws -> Void
     private let deleteAll: () async throws -> Void
 
@@ -62,6 +65,7 @@ final class IntentDonationService {
     ///
     /// - Parameter roomSummary: The summary of the room the message was sent to.
     func donateOutgoingMessage(roomSummary: RelayInterface.RoomSummary) {
+        guard isEnabled else { return }
         let intent = makeSendMessageIntent(roomSummary: roomSummary)
 
         let interaction = INInteraction(intent: intent, response: nil)
@@ -80,6 +84,7 @@ final class IntentDonationService {
     ///   - roomSummary: The summary of the room the message was received in.
     ///   - senderName: The display name of the message sender.
     func donateIncomingMessage(roomSummary: RelayInterface.RoomSummary, senderName: String?) {
+        guard isEnabled else { return }
         let now = Date()
         if let last = lastIncomingDonation[roomSummary.id],
            now.timeIntervalSince(last) < incomingDebounceInterval {
@@ -106,7 +111,17 @@ final class IntentDonationService {
         hand(interaction, roomID: roomSummary.id)
     }
 
-    // MARK: - Sign-Out
+    // MARK: - Withdrawal
+
+    /// Turns suggestions on or off. Turning them off withdraws those already
+    /// made: they carry the names the user chose to keep from macOS.
+    func setEnabled(_ enabled: Bool) async {
+        guard enabled != isEnabled else { return }
+        isEnabled = enabled
+        if !enabled {
+            await removeAllDonations()
+        }
+    }
 
     /// Withdraws every conversation Plic has suggested to macOS.
     ///

@@ -68,6 +68,18 @@ public final class MatrixService: MatrixServiceProtocol {
         }
     }
 
+    /// Whether conversations may be suggested to macOS for the share sheet.
+    ///
+    /// The app turns this off while notifications are set to reveal nothing:
+    /// the suggestions would hand macOS the same names. Turning it off also
+    /// withdraws the suggestions already made.
+    @ObservationIgnored public var allowsShareSuggestions = true {
+        didSet {
+            let allowed = allowsShareSuggestions
+            Task { await intentDonation.setEnabled(allowed) }
+        }
+    }
+
     // MARK: - Private State
 
     private var client: ClientProxy?

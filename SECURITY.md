@@ -95,11 +95,18 @@ index follows the same rule — no key, no index.
   page itself, so the site sees the user's IP address. Links that name a local
   address are never previewed.
 
-## Notifications
+## Notifications and the Share menu
 
 macOS keeps delivered notifications in its own database, outside Plic's
 encryption. By default a notification shows the sender and the message;
 Settings > Notifications can limit it to the sender's name, or to nothing.
+
+For the Share menu, Plic suggests conversations to macOS — each room's name,
+and the sender's name for a message received — and writes the share
+extension a list of rooms with their names and avatars. Signing out withdraws
+the suggestions and deletes the list. Choosing to show nothing in
+notifications stops the suggestions altogether, and withdraws those already
+made.
 
 ## Calls
 

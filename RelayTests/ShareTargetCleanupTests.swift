@@ -71,4 +71,24 @@ struct ShareTargetCleanupTests {
         await service.removeAllDonations()
         #expect(recorder.events == ["donate", "deleteAll", "donate", "deleteAll"])
     }
+
+    @Test("Turned off, suggestions are withdrawn and no new ones are made")
+    func suggestionsCanBeTurnedOff() async {
+        let recorder = Recorder()
+        let service = IntentDonationService(
+            donate: { _ in recorder.events.append("donate") },
+            deleteAll: { recorder.events.append("deleteAll") }
+        )
+
+        await service.setEnabled(false)
+        #expect(recorder.events == ["deleteAll"])
+
+        service.donateOutgoingMessage(roomSummary: room)
+        service.donateIncomingMessage(roomSummary: room, senderName: "Alice")
+        await service.setEnabled(true)
+        service.donateOutgoingMessage(roomSummary: room)
+        // Flushes the donation in flight before reading the record.
+        await service.removeAllDonations()
+        #expect(recorder.events == ["deleteAll", "donate", "deleteAll"])
+    }
 }

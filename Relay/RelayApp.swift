@@ -58,6 +58,7 @@ struct RelayApp: App {
 
     @AppStorage("selectedRoomId") private var selectedRoomId: String?
     @AppStorage("appearance.mode") private var appearanceMode: AppAppearance = .system
+    @AppStorage(NotificationPreview.key) private var notificationPreview = NotificationPreview.standard
 
     var body: some Scene {
         WindowGroup(id: "main") {
@@ -98,6 +99,10 @@ struct RelayApp: App {
                 .environment(\.audioPlayback, audioPlayback)
                 .environment(\.errorReporter, matrixService.errorReporter)
                 .preferredColorScheme(appearanceMode.colorScheme)
+                // Also here: the setting can change while no main window is open.
+                .onChange(of: notificationPreview) {
+                    applyNotificationPreview()
+                }
         }
 
         Window("Activity Log", id: "activity-log") {
@@ -142,6 +147,9 @@ struct RelayApp: App {
                     if state == .loggedOut {
                         composeDraftStore.removeAll()
                     }
+                }
+                .onChange(of: notificationPreview, initial: true) {
+                    applyNotificationPreview()
                 }
                 .onChange(of: matrixService.pendingVerificationRequest?.id) { _, newValue in
                     if newValue != nil, let request = matrixService.pendingVerificationRequest {
@@ -288,6 +296,14 @@ struct RelayApp: App {
             trigger: nil
         )
         UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Suggests conversations to macOS only when notifications may name them.
+    ///
+    /// With No Name or Message chosen, the share sheet's suggestions would
+    /// still hand macOS the room and sender names the user chose to withhold.
+    private func applyNotificationPreview() {
+        matrixService.allowsShareSuggestions = notificationPreview != .nothing
     }
 
     /// Checks the app group container for a pending share from the share extension.
