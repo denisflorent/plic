@@ -29,7 +29,9 @@ struct LiquidGlassBackdrop: NSViewRepresentable {
         backdrop.state = .active
         let glass = NSGlassEffectView()
         glass.style = .clear
-        glass.cornerRadius = 24
+        // No rounding of its own: the window already clips its corners, and
+        // a larger radius here would leave a see-through wedge at each corner.
+        glass.cornerRadius = 0
         glass.contentView = NSView()
         for layer in [backdrop, glass] {
             layer.translatesAutoresizingMaskIntoConstraints = false
