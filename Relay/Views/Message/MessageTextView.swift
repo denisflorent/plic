@@ -162,7 +162,7 @@ struct MessageTextView: NSViewRepresentable {
         coordinator.lastHighlightKeywords = highlightKeywords
         coordinator.cachedResolved = resolved
         view.linkTextAttributes = [.foregroundColor: linkColor]
-        view.textStorage?.setAttributedString(resolved)
+        view.setText(resolved)
 
         return view
     }
@@ -203,7 +203,7 @@ struct MessageTextView: NSViewRepresentable {
             coordinator.cachedResolved = resolved
 
             view.linkTextAttributes = [.foregroundColor: linkColor]
-            view.textStorage?.setAttributedString(resolved)
+            view.setText(resolved)
 
             // Invalidate the size cache — the text content changed.
             coordinator.cachedSizeResult = nil

@@ -70,6 +70,43 @@ final class MessageTextContent: NSTextView {
         // swiftlint:disable:next identifier_name
         if let textContainer, newSize.width > 0 {
             textContainer.size = NSSize(width: newSize.width, height: CGFloat.greatestFiniteMagnitude)
+            attachMentionPills()
+        }
+    }
+
+    /// Replaces the text and makes sure its mention pills get their views.
+    func setText(_ text: NSAttributedString) {
+        textStorage?.setAttributedString(text)
+        attachMentionPills()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        attachMentionPills()
+    }
+
+    private var pillAttachmentPending = false
+
+    /// Lays the viewport out again, which is where TextKit 2 creates the
+    /// views that draw mention pills. Outside a scroll view nothing asks for
+    /// it once the text or the width changes, so a message would keep an
+    /// empty gap where its pill goes until a hover or a resize relaid it.
+    ///
+    /// Done once the current layout pass is over: a view attached during the
+    /// pass is thrown away when the pass regenerates the fragments. Laying
+    /// out alone is not enough either, since a fragment already laid out
+    /// keeps its provider's view detached; the layout is invalidated first.
+    private func attachMentionPills() {
+        guard window != nil, !pillAttachmentPending, let textStorage,
+              textStorage.containsAttachments(in: NSRange(location: 0, length: textStorage.length))
+        else { return }
+        pillAttachmentPending = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.pillAttachmentPending = false
+            guard self.window != nil, let textLayoutManager = self.textLayoutManager else { return }
+            textLayoutManager.invalidateLayout(for: textLayoutManager.documentRange)
+            textLayoutManager.textViewportLayoutController.layoutViewport()
         }
     }
 
