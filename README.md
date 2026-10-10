@@ -14,6 +14,8 @@
   <a href="https://denisflorent.group/plic/support/">Support</a>
 </p>
 
+![Plic showing a group conversation, with the room list in the sidebar](.github/screenshot.png)
+
 Plic is a fork of [Relay](https://github.com/subpop/Relay) by Link Dupont,
 Andrew Hunter and Lukas Frias Santos. It keeps Relay's SwiftUI interface over
 the [Matrix Rust SDK](https://github.com/matrix-org/matrix-rust-sdk), and
