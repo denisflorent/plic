@@ -709,7 +709,9 @@ final class ComposeInputTextView: NSTextView {
         if string.isEmpty, let placeholder = placeholderString {
             let attrs: [NSAttributedString.Key: Any] = [
                 .font: font ?? .systemFont(ofSize: NSFont.systemFontSize),
-                .foregroundColor: NSColor.placeholderTextColor,
+                // Secondary rather than the placeholder colour: the field is
+                // glass, and over a dark page the placeholder grey all but vanishes.
+                .foregroundColor: NSColor.secondaryLabelColor,
             ]
             let insets = textContainerInset
             let padding = textContainer?.lineFragmentPadding ?? 0
