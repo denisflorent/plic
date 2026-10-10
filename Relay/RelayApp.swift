@@ -140,6 +140,14 @@ struct RelayApp: App {
                 .environment(\.errorReporter, matrixService.errorReporter)
                 .environment(\.composeDraftStore, composeDraftStore)
                 .environment(appActions)
+                .background {
+                    if appearanceMode.usesGlass {
+                        LiquidGlassBackdrop()
+                            .ignoresSafeArea()
+                            .allowsHitTesting(false)
+                    }
+                }
+                .background(GlassWindowConfigurator(usesGlass: appearanceMode.usesGlass))
                 .onChange(of: dockBadgeCount) { _, newCount in
                     NSApp.dockTile.badgeLabel = newCount > 0 ? "\(newCount)" : nil
                 }

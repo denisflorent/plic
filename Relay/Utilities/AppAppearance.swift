@@ -14,7 +14,8 @@
 
 import SwiftUI
 
-/// The three appearance modes: follow the system, force light, or force dark.
+/// The appearance modes: follow the system, force light, force dark, or
+/// Liquid Glass — dark, on a translucent window that shows what is behind it.
 ///
 /// Stored as a raw `String` in `@AppStorage("appearance.mode")`. The
 /// ``colorScheme`` property maps each case to a `ColorScheme?` suitable
@@ -23,6 +24,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
     case system
     case light
     case dark
+    case glass
 
     var id: String { rawValue }
 
@@ -31,6 +33,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
         case .system: "Auto"
         case .light: "Light"
         case .dark: "Dark"
+        case .glass: "Liquid Glass"
         }
     }
 
@@ -38,7 +41,10 @@ enum AppAppearance: String, CaseIterable, Identifiable {
         switch self {
         case .system: nil
         case .light: .light
-        case .dark: .dark
+        case .dark, .glass: .dark
         }
     }
+
+    /// Whether the window is see-through, with a Liquid Glass backdrop.
+    var usesGlass: Bool { self == .glass }
 }

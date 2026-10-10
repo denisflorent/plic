@@ -179,7 +179,15 @@ private struct AppearanceThumbnail: View {
             singleVariant(isDark: true)
         case .system:
             systemThumbnail
+        case .glass:
+            glassThumbnail
         }
+    }
+
+    /// The dark desktop, with windows that let the wallpaper through.
+    private var glassThumbnail: some View {
+        desktopScene(isDark: true, windowFill: AnyShapeStyle(.white.opacity(0.18)))
+            .frame(width: Self.thumbnailWidth, height: Self.thumbnailHeight)
     }
 
     private func singleVariant(isDark: Bool) -> some View {
@@ -205,7 +213,7 @@ private struct AppearanceThumbnail: View {
     }
 
     /// A miniature desktop with wallpaper gradient and two overlapping windows.
-    private func desktopScene(isDark: Bool) -> some View {
+    private func desktopScene(isDark: Bool, windowFill: AnyShapeStyle? = nil) -> some View {
         let wallpaper = isDark
             ? LinearGradient(
                 colors: [
@@ -229,21 +237,21 @@ private struct AppearanceThumbnail: View {
         return ZStack {
             wallpaper
 
-            miniWindow(isDark: isDark)
+            miniWindow(isDark: isDark, fill: windowFill)
                 .scaleEffect(0.85)
                 .offset(x: -6, y: -4)
 
-            miniWindow(isDark: isDark)
+            miniWindow(isDark: isDark, fill: windowFill)
                 .scaleEffect(0.85)
                 .offset(x: 6, y: 4)
         }
     }
 
     /// A tiny window with a title bar containing traffic-light circles.
-    private func miniWindow(isDark: Bool) -> some View {
-        let background = isDark
+    private func miniWindow(isDark: Bool, fill: AnyShapeStyle? = nil) -> some View {
+        let background = fill ?? AnyShapeStyle(isDark
             ? Color(white: 0.18)
-            : Color(white: 0.96)
+            : Color(white: 0.96))
 
         return ZStack(alignment: .topLeading) {
             Rectangle()

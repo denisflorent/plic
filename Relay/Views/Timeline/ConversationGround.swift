@@ -26,12 +26,24 @@ struct ConversationGround: View {
     /// How much of the darker ground is mixed in, from ``Depth/range``.
     let depth: Double
 
+    @AppStorage("appearance.mode") private var appearanceMode: AppAppearance = .system
+
     var body: some View {
         ZStack {
-            Color(nsColor: .windowBackgroundColor)
-            Color(nsColor: .underPageBackgroundColor).opacity(depth)
+            if appearanceMode.usesGlass {
+                // Under Liquid Glass the page cannot be opaque, or the glass
+                // behind it disappears: a light black tint instead, scaled so
+                // the standard depth lands on the shade a glass surface gets.
+                Color.black.opacity(depth * Self.glassTintScale)
+            } else {
+                Color(nsColor: .windowBackgroundColor)
+                Color(nsColor: .underPageBackgroundColor).opacity(depth)
+            }
         }
     }
+
+    /// Maps the depth range onto the tint a surface gets over glass, 0…0.27.
+    static let glassTintScale = 0.45
 
     /// The stored setting behind ``ConversationGround``.
     enum Depth {
