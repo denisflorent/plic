@@ -14,7 +14,7 @@ Plic is a native macOS app built with SwiftUI and Xcode.
 1. Clone the repository:
 
    ```
-   git clone https://github.com/denisflorent/plic.git
+   git clone https://github.com/denisflorentmediagroup/plic.git
    cd plic
    ```
 
@@ -313,7 +313,7 @@ pipeline. When investigating a missing message:
 
 ## Reporting Issues
 
-Open an issue on the [GitHub issue tracker](https://github.com/denisflorent/plic/issues).
+Open an issue on the [GitHub issue tracker](https://github.com/denisflorentmediagroup/plic/issues).
 Include steps to reproduce the problem, what you expected to happen, and what
 actually happened. Screenshots or logs are always helpful.
 
